@@ -7,7 +7,7 @@ import base64
 import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('Agg')
-
+import dateparser
 
 app = Flask(__name__) #don't change this code
 
@@ -17,8 +17,8 @@ def scrap(url):
     soup = BeautifulSoup(url_get.content,"html.parser")
     
     #Find the key to get the information
-    table = soup.find(___) 
-    tr = table.find_all(___) 
+    table = soup.find('table', attrs={'class':'centerText newsTable2'}) 
+    tr = table.find_all('tr') 
 
     temp = [] #initiating a tuple
 
@@ -26,30 +26,43 @@ def scrap(url):
         row = table.find_all('tr')[i]
         #use the key to take information here
         #name_of_object = row.find_all(...)[0].text
+        
+        #get tanggal
+        tanggal = row.find_all('td')[0].text
+        tanggal = tanggal.strip() #for removing the excess whitespace
 
+        #get ask
+        ask = row.find_all('td')[1].text
+        ask = ask.strip() #for removing the excess whitespace
 
+        #get bid
+        bid = row.find_all('td')[2].text
+        bid = bid.strip() #for removing the excess whitespace
 
-
-
-
-        temp.append((___)) #append the needed information 
+        
+        temp.append((tanggal,ask,bid)) 
+    
     
     temp = temp[::-1] #remove the header
 
-    df = pd.DataFrame(temp, columns = (___)) #creating the dataframe
+    df = pd.DataFrame(temp, columns = ('tanggal','ask','bid')) #creating the dataframe
    #data wranggling -  try to change the data type to right data type
-
+    df['ask'] = df['ask'].str.replace(",",".")
+    df['bid'] = df['bid'].str.replace(",",".")
+    df[['ask','bid']] = df[['ask','bid']].astype('float64')
+    #df['tanggal'] = df['tanggal'].str.replace("\xa0"," ")
+    df['tanggal']=df['tanggal'].apply(dateparser.parse)
    #end of data wranggling
 
     return df
 
 @app.route("/")
 def index():
-    df = scrap(___) #insert url here
+    df = scrap('https://news.mifx.com/kurs-valuta-asing?kurs=JPY') #insert url here
 
     #This part for rendering matplotlib
     fig = plt.figure(figsize=(5,2),dpi=300)
-    df.plot()
+    df.set_index('tanggal').plot()
     
     #Do not change this part
     plt.savefig('plot1',bbox_inches="tight") 
@@ -68,3 +81,4 @@ def index():
 
 if __name__ == "__main__": 
     app.run()
+app.run(debug=True)
